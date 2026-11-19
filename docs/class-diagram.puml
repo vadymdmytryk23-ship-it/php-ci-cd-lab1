@@ -1,0 +1,202 @@
+@startuml
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  ArrowColor #475569
+}
+
+abstract class User {
+  -id: int
+  -name: string
+  -email: string
+  -password: string
+  -status: string
+  +login(email: string, password: string): bool
+  +logout(): void
+  +updateProfile(data: array): bool
+  +changePassword(password: string): bool
+  +isActive(): bool
+}
+
+class Customer {
+  -phone: string
+  -address: string
+  -registeredAt: datetime
+  -notificationEnabled: bool
+  -preferredPaymentMethod: string
+  +addUtilityAccount(number: string): UtilityAccount
+  +submitMeterReading(accountId: int, value: decimal): MeterReading
+  +getBills(): array
+  +payBill(billId: int, amount: decimal): Payment
+  +getPaymentHistory(): array
+}
+
+class Administrator {
+  -position: string
+  -permissions: array
+  -lastLoginAt: datetime
+  -createdAt: datetime
+  -updatedAt: datetime
+  +createProvider(data: array): ServiceProvider
+  +updateTariff(serviceId: int, rate: decimal): bool
+  +blockUser(userId: int): bool
+  +generateStatistics(from: date, to: date): array
+  +viewAuditLog(): array
+}
+
+class UtilityAccount {
+  -id: int
+  -accountNumber: string
+  -address: string
+  -balance: decimal
+  -status: string
+  +getBalance(): decimal
+  +addBill(bill: Bill): void
+  +addReading(reading: MeterReading): void
+  +changeStatus(status: string): void
+  +getUnpaidBills(): array
+}
+
+class ServiceProvider {
+  -id: int
+  -name: string
+  -edrpou: string
+  -bankAccount: string
+  -contactEmail: string
+  +addService(service: UtilityService): void
+  +updateDetails(data: array): bool
+  +getServices(): array
+  +getReceivedPayments(): array
+  +calculateDebt(): decimal
+}
+
+class UtilityService {
+  -id: int
+  -name: string
+  -unit: string
+  -tariff: decimal
+  -activeFrom: date
+  +calculateCharge(previous: decimal, current: decimal): decimal
+  +updateTariff(value: decimal): void
+  +activate(): void
+  +deactivate(): void
+  +getCurrentTariff(): decimal
+}
+
+class Bill {
+  -id: int
+  -period: string
+  -amount: decimal
+  -dueDate: date
+  -status: string
+  +calculateTotal(): decimal
+  +markAsPaid(): void
+  +markAsOverdue(): void
+  +getDebt(): decimal
+  +isOverdue(): bool
+}
+
+class Payment {
+  -id: int
+  -amount: decimal
+  -method: string
+  -status: string
+  -paidAt: datetime
+  +process(): bool
+  +cancel(): bool
+  +confirm(transactionId: string): void
+  +fail(reason: string): void
+  +createReceipt(): Receipt
+}
+
+class MeterReading {
+  -id: int
+  -previousValue: decimal
+  -currentValue: decimal
+  -submittedAt: datetime
+  -status: string
+  +validate(): bool
+  +calculateUsage(): decimal
+  +approve(): void
+  +reject(reason: string): void
+  +isSubmittedOnTime(): bool
+}
+
+class Receipt {
+  -id: int
+  -number: string
+  -issuedAt: datetime
+  -total: decimal
+  -filePath: string
+  +generate(): string
+  +download(): string
+  +sendByEmail(email: string): bool
+  +getDetails(): array
+  +verify(): bool
+}
+
+class CustomerController {
+  -customer: Customer
+  -account: UtilityAccount
+  -reading: MeterReading
+  -requestData: array
+  -viewName: string
+  +dashboard(): view
+  +storeAccount(data: array): response
+  +storeReading(data: array): response
+  +bills(): view
+  +history(): view
+}
+
+class PaymentController {
+  -payment: Payment
+  -bill: Bill
+  -receipt: Receipt
+  -requestData: array
+  -redirectUrl: string
+  +create(billId: int): view
+  +store(data: array): response
+  +confirm(paymentId: int): response
+  +cancel(paymentId: int): response
+  +downloadReceipt(paymentId: int): response
+}
+
+class AdminController {
+  -administrator: Administrator
+  -provider: ServiceProvider
+  -service: UtilityService
+  -requestData: array
+  -viewName: string
+  +users(): view
+  +providers(): view
+  +storeProvider(data: array): response
+  +updateTariff(serviceId: int, value: decimal): response
+  +statistics(from: date, to: date): view
+}
+
+Customer --|> User
+Administrator --|> User
+
+Customer "1" o-- "0..*" UtilityAccount : owns
+UtilityAccount "1" *-- "0..*" Bill : contains
+UtilityAccount "1" *-- "0..*" MeterReading : records
+ServiceProvider "1" o-- "1..*" UtilityService : provides
+UtilityService "1" -- "0..*" Bill : calculates
+Bill "1" -- "0..*" Payment : paid by
+Payment "1" *-- "1" Receipt : creates
+
+CustomerController ..> Customer
+CustomerController ..> UtilityAccount
+CustomerController ..> MeterReading
+PaymentController ..> Bill
+PaymentController ..> Payment
+PaymentController ..> Receipt
+AdminController ..> Administrator
+AdminController ..> ServiceProvider
+AdminController ..> UtilityService
+
+@enduml

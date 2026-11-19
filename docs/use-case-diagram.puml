@@ -1,0 +1,65 @@
+@startuml
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F7FAFC
+  BorderColor #334155
+  ArrowColor #475569
+}
+skinparam rectangle {
+  BorderColor #334155
+}
+
+actor "Користувач" as User
+actor "Споживач" as Customer
+actor "Адміністратор" as Admin
+
+Customer --|> User
+Admin --|> User
+
+rectangle "Система оплати комунальних послуг" {
+  usecase "Увійти до системи" as UC_Login
+  usecase "Переглянути профіль" as UC_Profile
+  usecase "Вийти з системи" as UC_Logout
+
+  usecase "Додати особовий рахунок" as UC_AddAccount
+  usecase "Подати показники лічильника" as UC_Meter
+  usecase "Переглянути нарахування" as UC_Bills
+  usecase "Сплатити комунальний рахунок" as UC_Pay
+  usecase "Обрати спосіб оплати" as UC_Method
+  usecase "Підтвердити оплату" as UC_Confirm
+  usecase "Переглянути історію платежів" as UC_History
+  usecase "Завантажити квитанцію" as UC_Receipt
+
+  usecase "Керувати користувачами" as UC_Users
+  usecase "Керувати постачальниками" as UC_Providers
+  usecase "Оновити тарифи" as UC_Tariffs
+  usecase "Переглянути статистику" as UC_Statistics
+  usecase "Знайти користувача" as UC_FindUser
+  usecase "Заблокувати обліковий запис" as UC_BlockUser
+}
+
+User --> UC_Login
+User --> UC_Profile
+User --> UC_Logout
+
+Customer --> UC_AddAccount
+Customer --> UC_Meter
+Customer --> UC_Bills
+Customer --> UC_Pay
+Customer --> UC_History
+
+Admin --> UC_Users
+Admin --> UC_Providers
+Admin --> UC_Tariffs
+Admin --> UC_Statistics
+
+UC_Pay ..> UC_Method : <<include>>
+UC_Pay ..> UC_Confirm : <<include>>
+UC_Receipt ..> UC_History : <<extend>>
+UC_Users ..> UC_FindUser : <<include>>
+UC_BlockUser ..> UC_Users : <<extend>>
+
+@enduml
