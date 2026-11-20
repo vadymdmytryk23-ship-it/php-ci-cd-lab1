@@ -2,18 +2,19 @@
 
 declare(strict_types=1);
 
-function calculateTotal(float $previousReading, float $currentReading, float $tariff): float
-{
-    $consumption = $currentReading - $previousReading;
+namespace App\Services;
 
-    return round($consumption * $tariff, 2);
-}
+use App\Interfaces\LoggerInterface;
+use App\Models\AbstractEntity;
 
-function applyDiscount(float $price, float $discount): float
+class EntityService
 {
-    if ($discount < 0 || $discount > 100) {
-        throw new Exception('Неприпустиме значення знижки!');
+    public function __construct(private LoggerInterface $logger) {}
+
+    public function process(AbstractEntity $entity): string
+    {
+        $this->logger->log('Оброблено сутність '.$entity->getId());
+
+        return $entity->getDetails();
     }
-
-    return round($price - ($price * ($discount / 100)), 2);
 }
