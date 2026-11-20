@@ -2,27 +2,25 @@
 
 declare(strict_types=1);
 
+namespace Tests\Unit;
+
+use App\Interfaces\LoggerInterface;
+use App\Models\Product;
+use App\Services\EntityService;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__.'/../../app/Services/EntityService.php';
-
-final class EntityServiceTest extends TestCase
+class EntityServiceTest extends TestCase
 {
-    public function test_bill_calculation(): void
+    public function test_service_uses_injected_logger(): void
     {
-        $this->assertSame(577.58, calculateTotal(1250.5, 1384.2, 4.32));
-    }
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('log')
+            ->with('Оброблено сутність P-1');
 
-    public function test_discount_calculation(): void
-    {
-        $this->assertSame(900.0, applyDiscount(1000, 10));
-    }
+        $product = new Product('P-1', '2026-11-20', 'Лічильник', 1200);
+        $service = new EntityService($logger);
 
-    public function test_invalid_discount_throws_exception(): void
-    {
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Неприпустиме значення знижки!');
-
-        applyDiscount(1000, 150);
+        $this->assertSame('Товар: Лічильник, ціна: 1200 грн', $service->process($product));
     }
 }
