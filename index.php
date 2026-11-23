@@ -6,6 +6,7 @@ require_once 'vendor/autoload.php';
 
 use App\Core\Database;
 use App\Core\EntityFactory;
+use App\Models\Product;
 use App\Services\ConsoleLogger;
 use App\Services\EntityService;
 use App\Tasks\Book;
@@ -21,6 +22,7 @@ $databaseTwo = Database::getInstance();
 $sameDatabase = $databaseOne === $databaseTwo;
 
 $factory = new EntityFactory;
+/** @var Product $product */
 $product = $factory->createEntity('product', [
     'id' => 'P-15',
     'createdAt' => '2026-11-20',
