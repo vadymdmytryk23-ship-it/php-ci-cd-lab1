@@ -18,6 +18,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: pdo_sqlite
 
       - name: Copy .env file
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -31,11 +32,17 @@ jobs:
       - name: Lint code with Pint
         run: ./vendor/bin/pint --test
 
+      - name: Ensure SQLite database exists
+        run: touch database/database.sqlite
+
+      - name: Apply migrations and seed demo data
+        run: php artisan migrate --seed --force
+
       - name: Run Application Tests
         run: php artisan test
 
       - name: Demonstrate GitHub Secrets
         env:
           MY_SUPER_SECRET_KEY: ${{ secrets.MY_SUPER_SECRET_KEY }}
-        run: echo "Secret value is $MY_SUPER_SECRET_KEY"
+        run: test -z "$MY_SUPER_SECRET_KEY" || echo "Demo secret is configured"
 
