@@ -4,80 +4,71 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\UtilityAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class UtilityAccountController extends Controller
 {
-    private array $accounts = [
-        [
-            'id' => 1,
-            'account_number' => 'UA-150001',
-            'address' => 'м. Київ, вул. Хрещатик, 15',
-            'provider' => 'Київські енергетичні послуги',
-            'service_type' => 'electricity',
-        ],
-        [
-            'id' => 2,
-            'account_number' => 'UA-150002',
-            'address' => 'м. Київ, вул. Велика Васильківська, 41',
-            'provider' => 'Київводоканал',
-            'service_type' => 'water',
-        ],
-        [
-            'id' => 3,
-            'account_number' => 'UA-150003',
-            'address' => 'м. Київ, вул. Антоновича, 20',
-            'provider' => 'Київтеплоенерго',
-            'service_type' => 'heating',
-        ],
-    ];
-
     public function index(): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'data' => $this->accounts,
-        ]);
+        $accounts = UtilityAccount::with(['user', 'utilityServices.serviceProvider'])->orderBy('id')->get();
+
+        return response()->json(['status' => 'success', 'data' => $accounts]);
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $account = UtilityAccount::with(['user', 'utilityServices.serviceProvider', 'bills.utilityService', 'meterReadings'])->findOrFail($id);
+
+        return response()->json(['status' => 'success', 'data' => $account]);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'account_number' => ['required', 'string', 'min:6', 'max:30'],
-            'address' => ['required', 'string', 'min:5', 'max:255'],
-            'provider' => ['required', 'string', 'min:2', 'max:100'],
-            'service_type' => ['required', 'string', 'in:electricity,gas,water,heating'],
-        ]);
+        $data = $this->validateAccount($request);
 
-        $newAccount = [
-            'id' => count($this->accounts) + 1,
-            'account_number' => $validated['account_number'],
-            'address' => $validated['address'],
-            'provider' => $validated['provider'],
-            'service_type' => $validated['service_type'],
-        ];
+        $account = DB::transaction(function () use ($data): UtilityAccount {
+            $account = UtilityAccount::create($data);
+            $account->utilityServices()->sync($data['service_ids']);
 
-        return response()->json([
-            'status' => 'created',
-            'data' => $newAccount,
-        ], 201);
+            return $account;
+        });
+
+        return response()->json(['status' => 'created', 'data' => $account->load(['user', 'utilityServices.serviceProvider'])], 201);
     }
 
-    public function show(string $id): JsonResponse
+    public function update(Request $request, int $id): JsonResponse
     {
-        foreach ($this->accounts as $account) {
-            if ($account['id'] === (int) $id) {
-                return response()->json([
-                    'status' => 'success',
-                    'data' => $account,
-                ]);
+        $account = UtilityAccount::findOrFail($id);
+        $data = $this->validateAccount($request, $account);
+
+        DB::transaction(function () use ($account, $data): void {
+            $account->update($data);
+            if (array_key_exists('service_ids', $data)) {
+                $account->utilityServices()->sync($data['service_ids']);
             }
+        });
+
+        return response()->json(['status' => 'success', 'data' => $account->load(['user', 'utilityServices.serviceProvider'])]);
+    }
+
+    private function validateAccount(Request $request, ?UtilityAccount $account = null): array
+    {
+        $presence = $account ? 'sometimes' : 'required';
+        $number = Rule::unique('utility_accounts', 'account_number');
+        if ($account) {
+            $number->ignore($account->id);
         }
 
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Особовий рахунок із зазначеним ідентифікатором не знайдено.',
-        ], 404);
+        return $request->validate([
+            'user_id' => [$presence, 'required', 'integer', Rule::exists('users', 'id')->where('role', 'customer')->where('status', 'active')],
+            'account_number' => [$presence, 'required', 'string', 'min:6', 'max:30', $number],
+            'address' => [$presence, 'required', 'string', 'min:5', 'max:255'],
+            'service_ids' => [$presence, 'array', 'list'],
+            'service_ids.*' => ['required', 'integer', 'distinct', 'exists:utility_services,id'],
+        ]);
     }
 }

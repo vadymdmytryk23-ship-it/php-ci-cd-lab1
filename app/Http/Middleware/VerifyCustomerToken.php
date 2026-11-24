@@ -12,7 +12,7 @@ class VerifyCustomerToken
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->isMethod('post') && $request->header('X-Customer-Token') !== 'customer-15') {
+        if ($request->header('X-Customer-Token') !== 'customer-15') {
             return response()->json([
                 'status' => 'access_denied',
                 'message' => 'Відхилено: відсутній або неправильний заголовок X-Customer-Token.',
