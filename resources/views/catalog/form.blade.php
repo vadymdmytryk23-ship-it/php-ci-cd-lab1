@@ -14,7 +14,7 @@
             <div class="alert alert-danger" role="alert">Перевірте поля форми.</div>
         @endif
         @foreach ($definition['fields'] as $name => $field)
-            @continue($name === 'user_id' && auth()->user()->role !== 'administrator')
+            @continue($name === 'user_id')
             @php
                 $value = $item?->{$name};
                 if (! $item && $key === 'payments' && in_array($name, ['bill_id', 'amount'])) {

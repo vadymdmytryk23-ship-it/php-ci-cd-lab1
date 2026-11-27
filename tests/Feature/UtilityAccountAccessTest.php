@@ -22,56 +22,52 @@ class UtilityAccountAccessTest extends TestCase
     public function test_accounts_can_be_received(): void
     {
         UtilityAccount::factory()->count(3)->create();
-        $this->getJson('/utility-accounts')
+        $this->getJson('/api/v1/utility-accounts')
             ->assertOk()
-            ->assertJsonPath('status', 'success')
             ->assertJsonCount(3, 'data');
     }
 
     public function test_existing_account_can_be_received(): void
     {
         $account = UtilityAccount::factory()->create(['account_number' => 'UA-150001']);
-        $this->getJson('/utility-accounts/'.$account->id)
+        $this->getJson('/api/v1/utility-accounts/'.$account->id)
             ->assertOk()
-            ->assertJsonPath('data.account_number', 'UA-150001');
+            ->assertJsonPath('data.id', $account->id)
+            ->assertJsonMissingPath('data.account_number');
     }
 
     public function test_missing_account_returns_not_found(): void
     {
-        $this->getJson('/utility-accounts/999')
+        $this->getJson('/api/v1/utility-accounts/999')
             ->assertNotFound();
     }
 
-    public function test_request_without_customer_token_is_blocked(): void
+    public function test_request_without_bearer_token_is_blocked(): void
     {
-        $this->postJson('/utility-accounts', $this->accountData)
-            ->assertForbidden()
-            ->assertJsonPath('status', 'access_denied');
+        $this->postJson('/api/v1/utility-accounts', $this->accountData)
+            ->assertUnauthorized();
     }
 
     public function test_request_with_valid_token_creates_account(): void
     {
-        $this->withHeader('X-Customer-Token', 'customer-15')
-            ->postJson('/utility-accounts', $this->accountData + [
-                'user_id' => User::factory()->create()->id,
+        $user = User::factory()->create();
+        $this->withToken($user->createToken('test')->plainTextToken)
+            ->postJson('/api/v1/utility-accounts', $this->accountData + [
                 'service_ids' => [UtilityService::factory()->create()->id],
             ])
             ->assertCreated()
-            ->assertHeader('X-Security-Policy', 'Enforced')
-            ->assertJsonPath('status', 'created')
+            ->assertJsonPath('data.owner_id', $user->id)
             ->assertJsonPath('data.account_number', 'UA-150004');
     }
 
     public function test_invalid_data_returns_validation_error(): void
     {
-        $this->withHeader('X-Customer-Token', 'customer-15')
-            ->postJson('/utility-accounts', [])
+        $this->withToken(User::factory()->create()->createToken('test')->plainTextToken)
+            ->postJson('/api/v1/utility-accounts', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors([
                 'account_number',
                 'address',
-                'user_id',
-                'service_ids',
             ]);
     }
 }
