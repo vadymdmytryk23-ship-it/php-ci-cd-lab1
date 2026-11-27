@@ -15,6 +15,7 @@ if (($_SERVER['HTTP_CONTENT_ENCODING'] ?? '') === 'gzip') {
 }
 
 $lines = explode("\n", $payload ?: '', 4);
+$envelope = json_decode($lines[0] ?? '', true);
 $item = json_decode($lines[1] ?? '', true);
 if (($item['type'] ?? '') === 'event') {
     $event = json_decode($lines[2] ?? '', true);
@@ -25,7 +26,7 @@ if (($item['type'] ?? '') === 'event') {
         .' '.($frame['function'] ?? ''), array_slice($frames, -4));
     $email = $event['user']['email'] ?? '';
     $summary = [
-        'event_id' => $event['event_id'] ?? null,
+        'event_id' => $event['event_id'] ?? $envelope['event_id'] ?? null,
         'exception' => $exception['type'] ?? null,
         'message' => $exception['value'] ?? null,
         'request' => ['method' => $request['method'] ?? null, 'path' => parse_url($request['url'] ?? '', PHP_URL_PATH) ?: null],
