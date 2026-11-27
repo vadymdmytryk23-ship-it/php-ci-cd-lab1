@@ -22,10 +22,12 @@
                     @csrf
                     <button class="btn btn-outline-secondary btn-sm">Вийти</button>
                 </form>
-            @else
+            @endauth
+            @guest
+                <a href="{{ route('web.utility-accounts.index') }}">Особові рахунки</a>
                 <a href="{{ route('web.register') }}">Реєстрація</a>
                 <a class="btn btn-primary btn-sm" href="{{ route('login') }}">Увійти</a>
-            @endauth
+            @endguest
         </div>
     </div>
     @auth

@@ -27,7 +27,7 @@ class CatalogViewTest extends TestCase
             ->assertOk()->assertSee($account->account_number)->assertSee('Гаряча вода')
             ->assertSee('Тестовий споживач')->assertDontSee($other->account_number);
         $this->get(route('web.utility-accounts.show', $account))->assertOk()->assertSee('Гаряча вода');
-        $this->get(route('web.utility-accounts.edit', $other))->assertNotFound();
+        $this->get(route('web.utility-accounts.edit', $other))->assertForbidden();
         $this->get(route('web.users.index'))->assertForbidden();
     }
 
@@ -41,17 +41,16 @@ class CatalogViewTest extends TestCase
         $this->get($form)->assertSee('Чернетка адреси')->assertSee('is-invalid');
     }
 
-    public function test_admin_can_create_update_and_delete_an_account_with_services(): void
+    public function test_owner_can_create_update_and_delete_an_account_with_services(): void
     {
-        $admin = User::factory()->create(['role' => 'administrator']);
-        $customer = User::factory()->create();
+        $owner = User::factory()->create();
         [$first, $second] = UtilityService::factory()->count(2)->create();
         $data = [
             'account_number' => 'UA-WEB-15001', 'address' => 'Вулиця Шевченка, 15',
-            'user_id' => $customer->id, 'service_ids' => [$first->id, $second->id],
+            'service_ids' => [$first->id, $second->id],
         ];
         $index = route('web.utility-accounts.index');
-        $this->actingAs($admin)->post(route('web.utility-accounts.store'), $data)
+        $this->actingAs($owner)->post(route('web.utility-accounts.store'), $data)
             ->assertRedirect($index)->assertSessionHas('success');
         $account = UtilityAccount::where('account_number', 'UA-WEB-15001')->firstOrFail();
         $this->assertDatabaseCount('utility_account_utility_service', 2);
@@ -75,7 +74,7 @@ class CatalogViewTest extends TestCase
             $this->get(route("web.$key.create"))->assertOk();
             $id = config("catalog.$key.model")::firstOrFail()->id;
             $this->get(route("web.$key.show", $id))->assertOk();
-            $this->get(route("web.$key.edit", $id))->assertOk();
+            $this->get(route("web.$key.edit", $id))->assertStatus($key === 'utility-accounts' ? 403 : 200);
         }
     }
 
@@ -96,9 +95,9 @@ class CatalogViewTest extends TestCase
     public function test_login_and_logout_use_session_routes(): void
     {
         $user = User::factory()->create();
-        $this->get(route('web.utility-accounts.index'))->assertRedirect(route('login'));
+        $this->get(route('web.utility-accounts.create'))->assertRedirect(route('login'));
         $this->post(route('web.login'), ['email' => $user->email, 'password' => 'password'])
-            ->assertRedirect(route('web.utility-accounts.index'));
+            ->assertRedirect(route('web.utility-accounts.create'));
         $this->get(route('web.profile'))->assertOk()->assertSee($user->email);
         $this->post(route('web.logout'))->assertRedirect(route('home'));
         $this->assertGuest();
@@ -116,10 +115,10 @@ class CatalogViewTest extends TestCase
 
             return $item->id;
         };
-        $user = $write('users', ['name' => 'Споживач', 'email' => 'new@example.test', 'password' => 'demo-password', 'role' => 'customer', 'status' => 'active']);
+        $write('users', ['name' => 'Споживач', 'email' => 'new@example.test', 'password' => 'demo-password', 'role' => 'customer', 'status' => 'active']);
         $provider = $write('service-providers', ['name' => 'Водоканал', 'edrpou' => '20202020', 'bank_account' => 'UA12345678', 'contact_email' => 'water@example.test']);
         $service = $write('utility-services', ['name' => 'Вода', 'service_provider_id' => $provider, 'unit' => 'м³', 'tariff' => '30.38', 'active_from' => '2026-01-01']);
-        $account = $write('utility-accounts', ['user_id' => $user, 'account_number' => 'UA-202020', 'address' => 'Вулиця Шевченка, 15', 'service_ids' => [$service]]);
+        $account = $write('utility-accounts', ['account_number' => 'UA-202020', 'address' => 'Вулиця Шевченка, 15', 'service_ids' => [$service]]);
         $bill = $write('bills', ['utility_account_id' => $account, 'utility_service_id' => $service, 'period' => '2026-11', 'amount' => '120.00', 'due_date' => '2026-12-20']);
         $write('meter-readings', ['utility_account_id' => $account, 'previous_value' => '20', 'current_value' => '24']);
         $payment = $write('payments', ['bill_id' => $bill, 'amount' => '120.00', 'method' => 'card']);

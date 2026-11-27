@@ -1,5 +1,7 @@
 @php($value = data_get($item, $field['display'] ?? $name))
-@if ($field['type'] === 'checks')
+@if ($key === 'utility-accounts' && $field['type'] !== 'checks' && ! auth()->user()?->can('viewPrivate', $item))
+    <span class="muted">Приховано</span>
+@elseif ($field['type'] === 'checks')
     @forelse ($value as $service)
         <span class="service-chip" title="{{ $service->serviceProvider->name }}">{{ $service->name }}</span>
     @empty

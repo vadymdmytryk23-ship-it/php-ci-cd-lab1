@@ -15,7 +15,7 @@ class CabinetController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $data = $request->validate(['email' => 'required|email', 'password' => 'required|string']);
-        if (! Auth::attempt($data + ['status' => 'active'])) {
+        if (! Auth::attempt($data + ['status' => 'active'], $request->boolean('remember'))) {
             return back()->withErrors(['email' => 'Перевірте електронну пошту та пароль.'])->onlyInput('email');
         }
         $request->session()->regenerate();
