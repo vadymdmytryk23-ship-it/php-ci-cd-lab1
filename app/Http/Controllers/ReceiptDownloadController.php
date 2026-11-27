@@ -5,19 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Receipt;
-use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class ReceiptController extends Controller
+class ReceiptDownloadController extends Controller
 {
-    public function index(): JsonResponse
+    public function __invoke(Receipt $receipt): StreamedResponse
     {
-        return response()->json(['data' => Receipt::with('payment.bill')->latest('id')->get()]);
-    }
-
-    public function download(int $id): StreamedResponse
-    {
-        $receipt = Receipt::with('payment.bill')->findOrFail($id);
+        $receipt->load('payment.bill.utilityAccount');
+        $this->authorize('view', $receipt);
 
         return response()->streamDownload(function () use ($receipt): void {
             echo "Квитанція {$receipt->number}\n";

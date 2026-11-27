@@ -11,6 +11,7 @@ use App\Models\Receipt;
 use App\Models\ServiceProvider;
 use App\Models\User;
 use App\Models\UtilityService;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,8 +38,7 @@ class CatalogResource extends JsonResource
             };
         }
         if ($this->resource instanceof Bill && $this->resource->relationLoaded('payments')) {
-            $paid = $this->payments->where('status', 'paid')->sum('amount');
-            $data['debt'] = number_format((float) $this->amount - (float) $paid, 2, '.', '');
+            $data['debt'] = number_format(app(PaymentService::class)->debt($this->resource), 2, '.', '');
         }
 
         return $data;

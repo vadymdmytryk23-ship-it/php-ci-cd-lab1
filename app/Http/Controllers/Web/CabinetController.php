@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Web;
 
-use App\Models\Bill;
-use App\Models\Payment;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use App\Services\CatalogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,9 +14,9 @@ use Illuminate\View\View;
 
 class CabinetController extends Controller
 {
-    public function login(Request $request): RedirectResponse
+    public function login(LoginRequest $request): RedirectResponse
     {
-        $data = $request->validate(['email' => 'required|email', 'password' => 'required|string']);
+        $data = $request->validated();
         if (! Auth::attempt($data + ['status' => 'active'], $request->boolean('remember'))) {
             return back()->withErrors(['email' => 'Перевірте електронну пошту та пароль.'])->onlyInput('email');
         }
@@ -23,13 +25,9 @@ class CabinetController extends Controller
         return redirect()->intended(route('web.utility-accounts.index'));
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users',
-            'password' => 'required|string|min:8|max:72|confirmed',
-        ]);
+        $data = $request->validated();
         Auth::login(User::create($data)->refresh());
         $request->session()->regenerate();
 
@@ -50,14 +48,11 @@ class CabinetController extends Controller
         return view('auth.profile', ['user' => $request->user()]);
     }
 
-    public function statistics(Request $request): View
+    public function statistics(CatalogService $catalog): View
     {
-        abort_unless($request->user()->role === 'administrator', 403);
+        $this->authorize('viewAny', new User);
+        $data = $catalog->statistics();
 
-        return view('catalog.statistics', [
-            'users' => User::count(),
-            'bills' => Bill::where('status', 'unpaid')->count(),
-            'paid' => Payment::where('status', 'paid')->sum('amount'),
-        ]);
+        return view('catalog.statistics', $data + ['bills' => $data['unpaid_bills']]);
     }
 }
