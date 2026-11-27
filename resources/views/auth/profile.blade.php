@@ -9,4 +9,10 @@
             <dt>Роль</dt><dd>{{ $user->role === 'administrator' ? 'Адміністратор' : 'Споживач' }}</dd>
         </dl>
     </div>
+    @if (app()->isLocal() && config('app.sentry_demo_enabled'))
+        <form class="mt-3" method="POST" action="{{ route('web.sentry-demo') }}">
+            @csrf
+            <button class="btn btn-outline-secondary">Перевірити Sentry</button>
+        </form>
+    @endif
 @endsection

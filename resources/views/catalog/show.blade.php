@@ -17,7 +17,6 @@
                 <dt>Стан</dt><dd>@include('catalog.status')</dd>
             @endif
             @if ($key === 'bills')
-                @php($debt = (float) $item->amount - $item->payments->where('status', 'paid')->sum('amount'))
                 <dt>Залишок до сплати</dt><dd>{{ number_format($debt, 2, ',', ' ') }} грн</dd>
             @endif
         </dl>

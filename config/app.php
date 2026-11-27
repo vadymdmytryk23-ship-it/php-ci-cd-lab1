@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'sentry_demo_enabled' => env('SENTRY_DEMO_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------

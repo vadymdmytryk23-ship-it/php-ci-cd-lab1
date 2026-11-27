@@ -41,7 +41,12 @@ jobs:
       - name: Generate OpenAPI documentation
         run: php artisan l5-swagger:generate
 
+      - name: Verify route cache
+        run: php artisan route:cache && php artisan route:clear
+
       - name: Run Application Tests
+        env:
+          SENTRY_LARAVEL_DSN: ""
         run: php artisan test
 
       - name: Demonstrate GitHub Secrets
