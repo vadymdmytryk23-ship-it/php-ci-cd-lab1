@@ -31,5 +31,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(fn (Request $request): bool => $request->expectsJson() || ! $request->is('/'));
+        $exceptions->shouldRenderJsonWhen(fn (Request $request): bool => $request->expectsJson()
+            || ! $request->is('/', 'cabinet', 'cabinet/*'));
     })->create();
